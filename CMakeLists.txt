@@ -1,69 +1,84 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Spectrum-analyzer VERSION 0.1 LANGUAGES CXX)
+project(Sound VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS
-  Widgets PrintSupport Multimedia
-)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS
-  Widgets PrintSupport Multimedia
+    Widgets
+    PrintSupport
+    Multimedia
+    Concurrent
 )
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+find_package(ALSA REQUIRED)
 
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        qcustomplot.cpp
+        qcustomplot.h
 )
 
+include_directories(${CMAKE_SOURCE_DIR})
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(Spectrum-analyzer
+    qt_add_executable(Sound
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         qcustomplot.cpp qcustomplot.h
-        plotcontroller.h plotcontroller.cpp
-        inputcontroller.h inputcontroller.cpp
+
+        audiorecorder.h audiorecorder.cpp
+
+        fft.h fft.cpp
+        audioplayer.h audioplayer.cpp
+        plot.h
+        ringbuffer.h
+        frequencyplot.h frequencyplot.cpp
+        amplitudeplot.h amplitudeplot.cpp
+        volumeprocessor.h volumeprocessor.cpp
+        audioconverter.h
+        audioconverter.cpp
+        audioloader.h audioloader.cpp
+
+
+
+
     )
 # Define target properties for Android with Qt 6 as:
-#    set_property(TARGET Spectrum-analyzer APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+#    set_property(TARGET Sound APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
     if(ANDROID)
-        add_library(Spectrum-analyzer SHARED
+        add_library(Sound SHARED
             ${PROJECT_SOURCES}
         )
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(Spectrum-analyzer
+        add_executable(Sound
             ${PROJECT_SOURCES}
         )
     endif()
 endif()
 
-target_link_libraries(Spectrum-analyzer PRIVATE
-  Qt${QT_VERSION_MAJOR}::Widgets
-  Qt${QT_VERSION_MAJOR}::PrintSupport
-  Qt${QT_VERSION_MAJOR}::Multimedia
-)
+target_link_libraries(Sound PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.Spectrum-analyzer)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.Sound)
 endif()
-set_target_properties(Spectrum-analyzer PROPERTIES
+set_target_properties(Sound PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -72,12 +87,20 @@ set_target_properties(Spectrum-analyzer PROPERTIES
 )
 
 include(GNUInstallDirs)
-install(TARGETS Spectrum-analyzer
+install(TARGETS Sound
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+target_link_libraries(Sound PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::PrintSupport
+    Qt${QT_VERSION_MAJOR}::Multimedia
+    Qt${QT_VERSION_MAJOR}::Concurrent
+    ALSA::ALSA
+)
+
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(Spectrum-analyzer)
+    qt_finalize_executable(Sound)
 endif()
